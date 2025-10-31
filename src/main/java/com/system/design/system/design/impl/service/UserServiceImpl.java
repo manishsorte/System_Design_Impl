@@ -1,6 +1,10 @@
 package com.system.design.system.design.impl.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.system.design.system.design.impl.entity.User;
+import com.system.design.system.design.impl.entity.IdempotencyRecords;
+import com.system.design.system.design.impl.repository.IdempotencyRepository;
 import com.system.design.system.design.impl.repository.UserRepository;
 import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,12 +12,16 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+
 @Service
 @AllArgsConstructor
-public class UserServiceImpl{
+public class UserServiceImpl {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private IdempotencyRepository idempotencyRepository;
 
     // ✅ Create User
     public User createUser(User user) {
@@ -31,7 +39,7 @@ public class UserServiceImpl{
     }
 
     // ✅ Update User
-    public User updateUser(int id, User updatedUser) {
+    public User updateUser(int id, String idempotencyKey, User updatedUser) throws JsonProcessingException {
         Optional<User> existingUserOpt = userRepository.findById(id);
 
         if (existingUserOpt.isPresent()) {
@@ -39,11 +47,34 @@ public class UserServiceImpl{
             existingUser.setFirstName(updatedUser.getFirstName());
             existingUser.setLastName(updatedUser.getLastName());
             existingUser.setEmail(updatedUser.getEmail());
-            existingUser.setBalance(updatedUser.getBalance());
+            Optional<IdempotencyRecords> existingIdempotencyKey = idempotencyRepository.findById(idempotencyKey);
+            if (existingIdempotencyKey.isPresent()) {
+                System.out.println("Duplicate request detected. Returning previous response...");
+                existingUser.setBalance(retrieveIdempotentDataResponse(existingIdempotencyKey).getBalance());
+            }
+            else {
+                saveIdempotentDataResponse(updatedUser,idempotencyKey);
+                existingUser.setBalance(updatedUser.getBalance());
+            }
             return userRepository.save(existingUser);
         } else {
             throw new RuntimeException("User not found with id: " + id);
         }
+    }
+
+    public User retrieveIdempotentDataResponse(Optional<IdempotencyRecords> record) throws JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        // Retrieve
+        return mapper.readValue(record.get().getResponseData(), User.class); // deserialize JSON -> User
+    }
+
+    public void saveIdempotentDataResponse(User user,String key) throws JsonProcessingException {
+        // Save
+        ObjectMapper mapper = new ObjectMapper();
+        IdempotencyRecords record = new IdempotencyRecords();
+        record.setKey(key);
+        record.setResponseData(mapper.writeValueAsString(user)); // serialize User -> JSON
+        idempotencyRepository.save(record);
     }
 
     // ✅ Delete User

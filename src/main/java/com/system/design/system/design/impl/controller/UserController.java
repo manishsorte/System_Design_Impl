@@ -1,5 +1,6 @@
 package com.system.design.system.design.impl.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.system.design.system.design.impl.entity.User;
 import com.system.design.system.design.impl.service.UserServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,8 +35,8 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public User updateUser(@PathVariable int id, @RequestBody User user) {
-        return userService.updateUser(id, user);
+    public User updateUser(@PathVariable int id,@RequestHeader String idempotencyKey,@RequestBody User user) throws JsonProcessingException {
+        return userService.updateUser(id ,idempotencyKey ,user);
     }
 
     @DeleteMapping("/{id}")
