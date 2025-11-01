@@ -3,7 +3,7 @@ package com.system.design.system.design.impl.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.system.design.system.design.impl.entity.User;
-import com.system.design.system.design.impl.entity.IdempotencyRecords;
+import com.system.design.system.design.impl.entity.IdempotentRecords;
 import com.system.design.system.design.impl.repository.IdempotencyRepository;
 import com.system.design.system.design.impl.repository.UserRepository;
 import lombok.AllArgsConstructor;
@@ -47,7 +47,9 @@ public class UserServiceImpl {
             existingUser.setFirstName(updatedUser.getFirstName());
             existingUser.setLastName(updatedUser.getLastName());
             existingUser.setEmail(updatedUser.getEmail());
-            Optional<IdempotencyRecords> existingIdempotencyKey = idempotencyRepository.findById(idempotencyKey);
+
+            //Check Idempotency key is available in DB
+            Optional<IdempotentRecords> existingIdempotencyKey = idempotencyRepository.findById(idempotencyKey);
             if (existingIdempotencyKey.isPresent()) {
                 System.out.println("Duplicate request detected. Returning previous response...");
                 existingUser.setBalance(retrieveIdempotentDataResponse(existingIdempotencyKey).getBalance());
@@ -62,17 +64,17 @@ public class UserServiceImpl {
         }
     }
 
-    public User retrieveIdempotentDataResponse(Optional<IdempotencyRecords> record) throws JsonProcessingException {
-        ObjectMapper mapper = new ObjectMapper();
+    public User retrieveIdempotentDataResponse(Optional<IdempotentRecords> record) throws JsonProcessingException {
         // Retrieve
+        ObjectMapper mapper = new ObjectMapper();
         return mapper.readValue(record.get().getResponseData(), User.class); // deserialize JSON -> User
     }
 
     public void saveIdempotentDataResponse(User user,String key) throws JsonProcessingException {
         // Save
         ObjectMapper mapper = new ObjectMapper();
-        IdempotencyRecords record = new IdempotencyRecords();
-        record.setKey(key);
+        IdempotentRecords record = new IdempotentRecords();
+        record.setIdemKey(key);
         record.setResponseData(mapper.writeValueAsString(user)); // serialize User -> JSON
         idempotencyRepository.save(record);
     }

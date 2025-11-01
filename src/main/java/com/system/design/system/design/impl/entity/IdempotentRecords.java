@@ -3,23 +3,27 @@ package com.system.design.system.design.impl.entity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
+
 
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "idempotency_records")
-public class IdempotencyRecords {
+@Table(name = "idempotent")
+public class IdempotentRecords {
 
     @Id
-    private String key; // idempotency key
+    private String idemKey; // idempotency key
 
+    @Column
     @Lob
-    @Column(columnDefinition = "TEXT")
     private String responseData; // store JSON string
 
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
@@ -29,8 +33,12 @@ public class IdempotencyRecords {
         this.createdAt = createdAt;
     }
 
-    public String getKey() {
-        return key;
+    public String getIdemKey() {
+        return idemKey;
+    }
+
+    public void setIdemKey(String idemKey) {
+        this.idemKey = idemKey;
     }
 
     public String getResponseData() {
@@ -41,7 +49,4 @@ public class IdempotencyRecords {
         this.responseData = responseData;
     }
 
-    public void setKey(String key) {
-        this.key = key;
-    }
 }
