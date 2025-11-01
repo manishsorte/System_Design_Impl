@@ -49,14 +49,16 @@ public class UserServiceImpl {
             existingUser.setEmail(updatedUser.getEmail());
 
             //Check Idempotency key is available in DB
-            Optional<IdempotentRecords> existingIdempotencyKey = idempotencyRepository.findById(idempotencyKey);
-            if (existingIdempotencyKey.isPresent()) {
-                System.out.println("Duplicate request detected. Returning previous response...");
-                existingUser.setBalance(retrieveIdempotentDataResponse(existingIdempotencyKey).getBalance());
-            }
-            else {
-                saveIdempotentDataResponse(updatedUser,idempotencyKey);
-                existingUser.setBalance(updatedUser.getBalance());
+            if(idempotencyKey!=null){
+                Optional<IdempotentRecords> existingIdempotencyKey = idempotencyRepository.findById(idempotencyKey);
+                if (existingIdempotencyKey.isPresent()) {
+                    System.out.println("Duplicate request detected. Returning previous response...");
+                    existingUser.setBalance(retrieveIdempotentDataResponse(existingIdempotencyKey).getBalance());
+                }
+                else {
+                    saveIdempotentDataResponse(updatedUser,idempotencyKey);
+                    existingUser.setBalance(updatedUser.getBalance());
+                }
             }
             return userRepository.save(existingUser);
         } else {

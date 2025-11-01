@@ -35,7 +35,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public User updateUser(@PathVariable int id,@RequestHeader String idempotencyKey,@RequestBody User user) throws JsonProcessingException {
+    public User updateUser(@PathVariable int id,@RequestHeader(required = false) String idempotencyKey,@RequestBody User user) throws JsonProcessingException {
         return userService.updateUser(id ,idempotencyKey ,user);
     }
 
